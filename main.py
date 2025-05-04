@@ -1,126 +1,75 @@
+from data_preprocessing import load_and_clean_data
+from lstm_model import build_lstm_autoencoder
+from anomaly_detection import run_isolation_forest, run_oneclass_svm
+from logic_rules import logical_check
 import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
 from sklearn.preprocessing import MinMaxScaler
-from sklearn.ensemble import IsolationForest
-from sklearn.svm import OneClassSVM
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import LSTM, Dense, RepeatVector, TimeDistributed
+import pandas as pd
 
-# veri yükleme
-df = pd.read_csv("/Users/mirhanmetin/Downloads/final_corrected_clean_normal_training_data.csv")
+
+# 1- Load data and clean
+filepath = "./final_corrected_clean_normal_training_data.csv"
 features = ['left_foot_pressure', 'right_foot_pressure', 'core_stability']
-data_clean = df[features].dropna().reset_index(drop=True)
+data_clean = load_and_clean_data(filepath, features)
 
-# normalization
+# 2️- Normalization
+# @transform = Scales the data to a range of 0-1 using the min and max values ​​calculated in the fit step.
+# @fit = Calculates the min and max values ​​of the data. The fit method is called on the training data only.
 scaler = MinMaxScaler()
-scaled_data = scaler.fit_transform(data_clean)
+scaled_data = scaler.fit_transform(data_clean) 
 
-# lstm için zaman tanıma
+# Data preprocessing for LSTM
+# @timesteps = Number of previous time steps to consider for each sample.
+# @scaled_data = Normalized data ready for LSTM input.
+# @reshape = Reshapes the data into a 3D array with shape (samples, timesteps, features).
+# @X_lstm = 3D array of shape (samples, timesteps, features) for LSTM input.
 timesteps = 10
 X_lstm = np.array([scaled_data[i:i + timesteps] for i in range(len(scaled_data) - timesteps)])
 
-# lstm
-model = Sequential([
-    LSTM(64, activation='relu', return_sequences=True, input_shape=(timesteps, X_lstm.shape[2])),
-    LSTM(32, activation='relu', return_sequences=False),
-    RepeatVector(timesteps),
-    LSTM(32, activation='relu', return_sequences=True),
-    LSTM(64, activation='relu', return_sequences=True),
-    TimeDistributed(Dense(X_lstm.shape[2]))
-])
-model.compile(optimizer='adam', loss='mse')
+# Create LSTM model and train
+
+# @build_lstm_autoencoder = Function to build the LSTM Autoencoder model.
+# @model = LSTM Autoencoder model for time series anomaly detection.
+
+# @fit = Trains the model on the input data (X_lstm) for 30 epochs with a batch size of 32 and a validation split of 0.1.
+# @epochs = Number of epochs to train the model.
+# @batch_size = Number of samples per gradient update.
+# @validation_split = Fraction of the training data to be used as validation data.
+# @verbose = Verbosity mode (0 = silent, 1 = progress bar, 2 = one line per epoch).
+model = build_lstm_autoencoder(timesteps, X_lstm.shape[2])
 model.fit(X_lstm, X_lstm, epochs=30, batch_size=32, validation_split=0.1, verbose=2)
 
-# mse hesaplanması
+# The trained Autoencoder model now makes predictions for each sequence (block of 10) in the dataset.
+# So MSE is for us -> how much deviation from “usual” = anomaly signal.
+# @X_pred = Model predictions for the input data (X_lstm).
+# @mse = Mean Squared Error between the input data and the model predictions.
+# @threshold = 95th percentile of the MSE values, used to determine anomalies.
 X_pred = model.predict(X_lstm)
 mse = np.mean(np.power(X_lstm - X_pred, 2), axis=(1, 2))
 threshold = np.percentile(mse, 95)
-print("MSE Eşik Değeri (Threshold):", threshold)
-print("MSE Değeri:", mse[195])  # 196. veri noktası için MSE'yi kontrol et
-lstm_anomalies = mse > threshold
 
-# isolation forest ve svm
+# 6️⃣ Isolation Forest & SVM çalıştır
+# @X_ml = DataFrame of the scaled data without the last timesteps, used for Isolation Forest and SVM.
+# @pd.DataFrame = Creates a DataFrame from the scaled data without the last timesteps.
+# @iso_anomalies = Anomaly scores from Isolation Forest.
+# @svm_anomalies = Anomaly scores from One-Class SVM.
+# @run_isolation_forest = Function to run Isolation Forest for anomaly detection.
+# @run_oneclass_svm = Function to run One-Class SVM for anomaly detection.
 X_ml = pd.DataFrame(scaled_data[:-timesteps], columns=features)
-iso_model = IsolationForest(n_estimators=100, contamination=0.01, random_state=42)
-iso_preds = iso_model.fit_predict(X_ml)
-svm_model = OneClassSVM(kernel='rbf', nu=0.01, gamma='auto')
-svm_preds = svm_model.fit_predict(X_ml)
+iso_anomalies = run_isolation_forest(X_ml)
+svm_anomalies = run_oneclass_svm(X_ml)
 
-# sonuçlar
+# 7️⃣ Sonuç DataFrame'i oluştur
 results = X_ml.copy()
 results['LSTM_MSE'] = mse
-results['LSTM_Anomaly'] = lstm_anomalies
-results['ISO_Anomaly'] = iso_preds == -1
-results['SVM_Anomaly'] = svm_preds == -1
-# lstm + svm veya lstm + isolation forest şeklinde Final_Anomaly kararı
+results['LSTM_Anomaly'] = mse > threshold
+results['ISO_Anomaly'] = iso_anomalies
+results['SVM_Anomaly'] = svm_anomalies
 results['Final_Anomaly'] = ((results['LSTM_Anomaly'] & results['SVM_Anomaly']) |
                             (results['LSTM_Anomaly'] & results['ISO_Anomaly']))
 
-# mantıksal kısıtlamalar/uyarılar
-def logical_check(row):
-    alerts = []
-    left = row['left_foot_pressure']
-    right = row['right_foot_pressure']
-    core = row['core_stability']
-    mse = row['LSTM_MSE']
+# 8️⃣ Mantıksal kontroller
+results['Logic_Alert'] = results.apply(lambda row: logical_check(row, threshold), axis=1)
 
-    if left + right > 1.2:
-        alerts.append("Toplam basınç yüksek!")
-    # dengesizlik uyarı sistemi
-    diff = abs(left - right)
-    if diff > 0.4:
-        alerts.append("Ayaklar arası ciddi dengesizlik!")
-    elif diff > 0.2:
-        alerts.append("Ayaklar arası dengesizlik var!")
-
-    # basınç uyarı sistemi
-    if left < 0.3:
-        alerts.append("Sol ayak az basıyor!")
-    if right < 0.3:
-        alerts.append("Sağ ayak az basıyor!")
-
-    if core < 0.4:
-        alerts.append("Stabilite düşük!")
-    if mse > threshold:
-        alerts.append("Öğrenilmemiş (mse)")
-    if not alerts:
-        alerts.append("Fiziksel parametreler normal")
-    return " | ".join(alerts)
-
-results['Logic_Alert'] = results.apply(logical_check, axis=1)
-
-# grafik
-plt.ion()
-fig, ax = plt.subplots(figsize=(12, 7))
-ax.set_title("Anomaly Detection", fontsize=14)
-ax.set_xlabel("Left Foot Pressure")
-ax.set_ylabel("Right Foot Pressure")
-ax.grid(True)
-
-for i in range(len(results)):
-    row = results.iloc[i]
-    x = row['left_foot_pressure']
-    y = row['right_foot_pressure']
-
-    if row['Final_Anomaly']:
-        color = 'red'
-    elif "UYARI!" in row['Logic_Alert']:
-        color = 'orange'
-    else:
-        color = 'green'
-
-    ax.scatter(x, y, color=color, edgecolors='k', s=80)
-    ax.annotate(str(i + 1), (x + 0.005, y + 0.005), fontsize=7)
-
-    print(f"\n{i + 1}. DATA POİNT")
-    print(f"Left: {x:.2f}, Right: {y:.2f}, Core: {row['core_stability']:.2f}")
-    print(f"LSTM Anomaly (True/False): {lstm_anomalies[i]}")
-    print(f"ISO Anomaly (True/False): {row['ISO_Anomaly']}")
-    print(f"SVM Anomaly (True/False): {row['SVM_Anomaly']}")
-    print(f"Final Anomaly: {row['Final_Anomaly']}, MSE: {row['LSTM_MSE']:.4f}")
-    print(f"Logic Check: {row['Logic_Alert']}")
-    plt.pause(0.05)
-
-plt.ioff()
-plt.show()
+# 9️⃣ Görselleştir
+plot_anomalies(results)

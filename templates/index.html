@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Powerlifting Movement Analysis</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        background-color: #f8f9fa;
+        padding: 20px;
+      }
+
+      .card {
+        margin-bottom: 20px;
+        border: none;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      }
+
+      .metric-card {
+        text-align: center;
+        padding: 20px;
+        border-radius: 10px;
+        transition: transform 0.2s;
+      }
+
+      .metric-card:hover {
+        transform: translateY(-5px);
+      }
+
+      .suggestion-card {
+        border-left: 4px solid;
+        margin-bottom: 10px;
+      }
+
+      .suggestion-card.form {
+        border-left-color: #dc3545;
+      }
+
+      .suggestion-card.stability {
+        border-left-color: #ffc107;
+      }
+
+      .suggestion-card.balance {
+        border-left-color: #0dcaf0;
+      }
+
+      .suggestion-card.anomaly {
+        border-left-color: #6610f2;
+      }
+
+      .detail-list {
+        margin: 0;
+        padding-left: 20px;
+      }
+
+      /* Plot image style */
+      .anomaly-plot {
+        max-width: 100%;
+        height: auto;
+        border: 1px solid #dee2e6;
+        border-radius: 10px;
+        margin-top: 20px;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="container">
+      <h1 class="text-center mb-5">Powerlifting Movement Analysis</h1>
+
+      <!-- Movement Selection -->
+      <div class="card mb-4">
+        <div class="card-body">
+          <h5 class="card-title">Select Movement</h5>
+          <select id="movementSelect" class="form-select mb-3">
+            <option value="squat">Squat</option>
+            <option value="benchpress">Bench Press</option>
+            <option value="deadlift">Deadlift</option>
+          </select>
+          <button id="analyzeBtn" class="btn btn-primary w-100">
+            Analyze Movement
+          </button>
+        </div>
+      </div>
+
+      <!-- Analysis Results -->
+      <div id="resultsSection" style="display: none">
+        <h3 class="mb-4">Analysis Results</h3>
+
+        <!-- Metrics -->
+        <div class="row mb-4">
+          <div class="col-md-3">
+            <div class="card metric-card bg-light">
+              <h6>Movement Classification</h6>
+              <div id="classificationScore" class="h3 mb-0">-</div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="card metric-card bg-light">
+              <h6>Stability Analysis</h6>
+              <div id="stabilityScore" class="h3 mb-0">-</div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="card metric-card bg-light">
+              <h6>Balance Score</h6>
+              <div id="balanceScore" class="h3 mb-0">-</div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="card metric-card bg-light">
+              <h6>Anomaly Status</h6>
+              <div id="anomalyStatus" class="h3 mb-0">-</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Suggestions -->
+        <div class="card mb-4">
+          <div class="card-body">
+            <h5 class="card-title">Movement Feedback</h5>
+            <div id="suggestions"></div>
+          </div>
+        </div>
+
+        <!-- Anomaly Plot -->
+        <div class="card">
+          <div class="card-body">
+            <h5 class="card-title">Anomaly Detection Plot</h5>
+            <img
+              id="anomalyPlot"
+              src=""
+              alt="Anomaly Detection Plot"
+              class="anomaly-plot"
+              style="display: none"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+      document
+        .getElementById("analyzeBtn")
+        .addEventListener("click", async () => {
+          const movement = document.getElementById("movementSelect").value;
+          const resultsSection = document.getElementById("resultsSection");
+
+          try {
+            const response = await fetch("/analyze", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ movement_type: movement }),
+            });
+
+            const data = await response.json();
+
+            if (data.status === "success") {
+              // Update metrics
+              document.getElementById("classificationScore").textContent = `${(
+                data.results.classification_confidence * 100
+              ).toFixed(1)}%`;
+              document.getElementById("stabilityScore").textContent = `${(
+                data.results.stability_score * 100
+              ).toFixed(1)}%`;
+              document.getElementById("balanceScore").textContent = `${(
+                data.results.balance_score * 100
+              ).toFixed(1)}%`;
+              document.getElementById("anomalyStatus").textContent = data
+                .results.anomaly_detected
+                ? "Detected"
+                : "Normal";
+
+              // Update suggestions
+              const suggestionsDiv = document.getElementById("suggestions");
+              suggestionsDiv.innerHTML = "";
+
+              data.results.suggestions.forEach((suggestion) => {
+                const card = document.createElement("div");
+                card.className = `card suggestion-card ${suggestion.type} mb-3`;
+
+                const cardBody = document.createElement("div");
+                cardBody.className = "card-body";
+
+                const title = document.createElement("h6");
+                title.className = "card-title";
+                title.textContent = suggestion.message;
+
+                const details = document.createElement("ul");
+                details.className = "detail-list";
+                suggestion.details.forEach((detail) => {
+                  const li = document.createElement("li");
+                  li.textContent = detail;
+                  details.appendChild(li);
+                });
+
+                cardBody.appendChild(title);
+                cardBody.appendChild(details);
+                card.appendChild(cardBody);
+                suggestionsDiv.appendChild(card);
+              });
+
+              // Update anomaly plot if available
+              const anomalyPlot = document.getElementById("anomalyPlot");
+              if (data.results.plot_url) {
+                anomalyPlot.src = data.results.plot_url;
+                anomalyPlot.style.display = "block";
+              } else {
+                anomalyPlot.style.display = "none";
+              }
+
+              resultsSection.style.display = "block";
+            }
+          } catch (error) {
+            console.error("Error:", error);
+            alert("An error occurred while analyzing the movement.");
+          }
+        });
+    </script>
+  </body>
+</html>
