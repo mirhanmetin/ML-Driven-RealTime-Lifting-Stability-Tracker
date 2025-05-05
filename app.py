@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify, render_template, redirect, url_for
 import logging
 import traceback
 import os
@@ -137,6 +137,55 @@ def end_session():
 def index():
     logger.info("Rendering static index page")
     return render_template('index.html')
+
+@app.route('/signup', methods=['GET'])
+def signup_page():
+    # Render the signup.html page
+    return render_template('signup.html')  # Render the signup.html page
+
+@app.route('/signup', methods=['POST'])
+def signup_user():
+    try:
+        data = request.get_json()
+        email = data.get('email')
+        password = data.get('password')
+
+        # Use the signup function from auth.py
+        user = signup(email, password)
+        
+        if "error" in user:
+            return jsonify({'status': 'error', 'message': user["error"]}), 400
+        
+        return jsonify({'status': 'success', 'message': 'User registered successfully', 'user': user}), 200
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': f"Error during signup: {str(e)}"}), 500
+
+
+@app.route('/login', methods=['GET'])
+def login_page():
+    # Login page rendering
+    return render_template('login.html')  # Render the login.html page
+
+@app.route('/login', methods=['POST'])
+def login_user():
+    try:
+        data = request.get_json()
+        email = data.get('email')
+        password = data.get('password')
+
+        # Use the login function from auth.py
+        user = login(email, password)
+
+        if "error" in user:
+            return jsonify({'status': 'error', 'message': user['error']}), 400
+        
+        # Login successful, redirect or handle session
+        return redirect(url_for('dashboard'))  # Example redirect after login
+        
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': f"Error during login: {str(e)}"}), 500
+
+
 
 @app.route('/analyze', methods=['POST'])
 def analyze():

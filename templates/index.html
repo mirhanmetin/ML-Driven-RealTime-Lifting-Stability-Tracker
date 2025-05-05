@@ -118,8 +118,9 @@
 
           <!-- Login and Sign Up buttons -->
           <div class="button-container">
-            <button id="loginBtn" class="btn btn-primary">Login</button>
-            <button id="signupBtn" class="btn btn-primary">Sign Up</button>
+            <!-- Change login button to a link that navigates to /login -->
+            <a href="/login" class="btn btn-primary">Login</a>
+            <a href="/login" class="btn btn-primary">Login</a>
           </div>
         </div>
       </div>
@@ -148,34 +149,6 @@
               />
             </div>
             <button type="submit" class="btn btn-primary w-100">Sign Up</button>
-          </form>
-        </div>
-      </div>
-
-      <!-- Login Form (Initially hidden) -->
-      <div id="loginSection" class="card mb-4 hidden">
-        <div class="card-body">
-          <h5 class="card-title">Login</h5>
-          <form id="loginForm">
-            <div class="mb-3">
-              <label for="loginEmail" class="form-label">Email</label>
-              <input
-                type="email"
-                class="form-control"
-                id="loginEmail"
-                required
-              />
-            </div>
-            <div class="mb-3">
-              <label for="loginPassword" class="form-label">Password</label>
-              <input
-                type="password"
-                class="form-control"
-                id="loginPassword"
-                required
-              />
-            </div>
-            <button type="submit" class="btn btn-primary w-100">Login</button>
           </form>
         </div>
       </div>
@@ -265,8 +238,7 @@
     <script>
       // Authentication Section
       document.getElementById("loginBtn").addEventListener("click", () => {
-        document.getElementById("authSection").style.display = "none";
-        document.getElementById("loginSection").style.display = "block";
+        window.location.href = "/login"; // Redirect to login page
       });
 
       document.getElementById("signupBtn").addEventListener("click", () => {
@@ -300,35 +272,6 @@
           } catch (error) {
             console.error("Error:", error);
             alert("An error occurred during sign up.");
-          }
-        });
-
-      document
-        .getElementById("loginForm")
-        .addEventListener("submit", async (e) => {
-          e.preventDefault();
-          const email = document.getElementById("loginEmail").value;
-          const password = document.getElementById("loginPassword").value;
-
-          try {
-            const response = await fetch("/login", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({ email, password }),
-            });
-
-            const data = await response.json();
-            if (data.status === "success") {
-              alert("Login successful!");
-              window.location.href = "/dashboard"; // Redirect to dashboard
-            } else {
-              alert("Error during login: " + data.message);
-            }
-          } catch (error) {
-            console.error("Error:", error);
-            alert("An error occurred during login.");
           }
         });
     </script>
