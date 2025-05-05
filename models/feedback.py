@@ -1,7 +1,5 @@
-from flask_sqlalchemy import SQLAlchemy
+from models.db import db
 import uuid
-
-db = SQLAlchemy()
 
 class Feedback(db.Model):
     __tablename__ = 'feedback'
@@ -13,7 +11,7 @@ class Feedback(db.Model):
     created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
     updated_at = db.Column(db.DateTime, default=db.func.current_timestamp(), onupdate=db.func.current_timestamp())
 
-    session_rel = db.relationship('Session', foreign_keys=[session_id])
+    session_rel = db.relationship('Sessions', foreign_keys=[session_id])
     metrics_rel = db.relationship('PerformanceMetrics', foreign_keys=[metrics_id])
 
     def __repr__(self):

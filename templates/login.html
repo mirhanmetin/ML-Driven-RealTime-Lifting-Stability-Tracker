@@ -56,6 +56,13 @@
   </head>
 
   <body>
+    <a
+      href="javascript:history.back()"
+      class="btn btn-primary:hover"
+      style="position: absolute; top: 20px; left: 20px"
+    >
+      ⬅️ Back
+    </a>
     <div class="container">
       <h1 class="text-center mb-5">Powerlifting Movement Analysis - Login</h1>
 
@@ -107,10 +114,10 @@
 
             const data = await response.json();
             if (data.status === "success") {
-              alert("Login successful!");
-              window.location.href = "/dashboard"; // Redirect to dashboard
+              alert("✅ Login successful! Redirecting...");
+              window.location.href = data.redirect_url; // <-- JSON ile gelen URL'ye yönlendir
             } else {
-              alert("Error during login: " + data.message);
+              alert("❌ Login failed: " + data.message);
             }
           } catch (error) {
             console.error("Error:", error);

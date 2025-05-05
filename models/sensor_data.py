@@ -1,7 +1,5 @@
-from flask_sqlalchemy import SQLAlchemy
+from models.db import db
 import uuid
-
-db = SQLAlchemy()
 
 class SensorData(db.Model):
     __tablename__ = 'sensor_data'

@@ -1,15 +1,14 @@
-from flask_sqlalchemy import SQLAlchemy
+from models.db import db 
 import uuid
 
-db = SQLAlchemy()
-
-class Session(db.Model):
+class Sessions(db.Model):
     __tablename__ = 'sessions'
 
     id = db.Column(db.UUID, primary_key=True, default=uuid.uuid4)
     trainer = db.Column(db.UUID, db.ForeignKey('users.id'))
     athlete = db.Column(db.UUID, db.ForeignKey('users.id'))
     lift_type = db.Column(db.String(100), nullable=False)
+    status = db.Column(db.String(20), nullable=False, default='ongoing')
     sensor_data_id = db.Column(db.UUID, db.ForeignKey('sensor_data.id'))
     performance_metric_id = db.Column(db.UUID, db.ForeignKey('performance_metrics.id'))
     feedback_id = db.Column(db.UUID, db.ForeignKey('feedback.id'))
@@ -25,4 +24,4 @@ class Session(db.Model):
     feedback_rel = db.relationship('Feedback', foreign_keys=[feedback_id])
 
     def __repr__(self):
-        return f'<Session {self.id}>'
+        return f'<Sessions {self.id}>'

@@ -1,7 +1,5 @@
-from flask_sqlalchemy import SQLAlchemy
+from models.db import db 
 import uuid
-
-db = SQLAlchemy()
 
 class PerformanceMetrics(db.Model):
     __tablename__ = 'performance_metrics'
@@ -14,7 +12,7 @@ class PerformanceMetrics(db.Model):
     created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
     updated_at = db.Column(db.DateTime, default=db.func.current_timestamp(), onupdate=db.func.current_timestamp())
 
-    session_rel = db.relationship('Session', foreign_keys=[session_id])
+    session_rel = db.relationship('Sessions', foreign_keys=[session_id])
 
     def __repr__(self):
         return f'<PerformanceMetrics {self.id}>'
