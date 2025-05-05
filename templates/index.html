@@ -11,7 +11,8 @@
     <style>
       body {
         background-color: #121212;
-        color: white;
+        color: #f39c12; /* Altın sarısı metin */
+        font-family: Arial, sans-serif;
         padding: 20px;
       }
 
@@ -39,41 +40,6 @@
         transform: translateY(-5px);
       }
 
-      .suggestion-card {
-        border-left: 4px solid;
-        margin-bottom: 10px;
-      }
-
-      .suggestion-card.form {
-        border-left-color: #dc3545;
-      }
-
-      .suggestion-card.stability {
-        border-left-color: #ffc107;
-      }
-
-      .suggestion-card.balance {
-        border-left-color: #0dcaf0;
-      }
-
-      .suggestion-card.anomaly {
-        border-left-color: #6610f2;
-      }
-
-      .detail-list {
-        margin: 0;
-        padding-left: 20px;
-      }
-
-      /* Plot image style */
-      .anomaly-plot {
-        max-width: 100%;
-        height: auto;
-        border: 1px solid #dee2e6;
-        border-radius: 10px;
-        margin-top: 20px;
-      }
-
       .button-container {
         display: flex;
         justify-content: space-between;
@@ -88,8 +54,14 @@
       input,
       select {
         background-color: #444;
-        color: white;
+        color: #f39c12; /* Altın sarısı metin */
         border: 1px solid #555;
+      }
+
+      input:focus,
+      select:focus {
+        border-color: #f39c12;
+        box-shadow: 0 0 5px rgba(243, 156, 18, 0.5); /* Altın sarısı focus */
       }
 
       /* Buttons */
@@ -98,13 +70,39 @@
         border-color: #f39c12;
       }
 
+      .btn-primary:hover {
+        background-color: #e67e22;
+        border-color: #e67e22;
+      }
+
       .btn-danger {
         background-color: #e74c3c;
         border-color: #e74c3c;
       }
 
+      .btn-danger:hover {
+        background-color: #c0392b;
+        border-color: #c0392b;
+      }
+
+      /* Hidden by default */
       .hidden {
         display: none;
+      }
+
+      .form-label {
+        color: #f39c12;
+      }
+
+      .form-control {
+        background-color: #444;
+        border-color: #555;
+        color: #f39c12; /* Altın sarısı metin */
+      }
+
+      .form-control:focus {
+        border-color: #f39c12;
+        box-shadow: 0 0 5px rgba(243, 156, 18, 0.5);
       }
     </style>
   </head>
@@ -150,6 +148,34 @@
               />
             </div>
             <button type="submit" class="btn btn-primary w-100">Sign Up</button>
+          </form>
+        </div>
+      </div>
+
+      <!-- Login Form (Initially hidden) -->
+      <div id="loginSection" class="card mb-4 hidden">
+        <div class="card-body">
+          <h5 class="card-title">Login</h5>
+          <form id="loginForm">
+            <div class="mb-3">
+              <label for="loginEmail" class="form-label">Email</label>
+              <input
+                type="email"
+                class="form-control"
+                id="loginEmail"
+                required
+              />
+            </div>
+            <div class="mb-3">
+              <label for="loginPassword" class="form-label">Password</label>
+              <input
+                type="password"
+                class="form-control"
+                id="loginPassword"
+                required
+              />
+            </div>
+            <button type="submit" class="btn btn-primary w-100">Login</button>
           </form>
         </div>
       </div>
@@ -239,7 +265,8 @@
     <script>
       // Authentication Section
       document.getElementById("loginBtn").addEventListener("click", () => {
-        alert("Login functionality will be here.");
+        document.getElementById("authSection").style.display = "none";
+        document.getElementById("loginSection").style.display = "block";
       });
 
       document.getElementById("signupBtn").addEventListener("click", () => {
@@ -266,7 +293,7 @@
             const data = await response.json();
             if (data.status === "success") {
               alert("Sign Up successful!");
-              // Redirect or change to login view
+              window.location.href = "/login"; // Redirect to login
             } else {
               alert("Error during sign up: " + data.message);
             }
@@ -276,127 +303,32 @@
           }
         });
 
-      // Movement Section
-      let sessionStarted = false;
-
-      // Enable Start Session button when movement is selected
       document
-        .getElementById("movementSelect")
-        .addEventListener("change", () => {
-          const movement = document.getElementById("movementSelect").value;
-          const startButton = document.getElementById("startSessionBtn");
-
-          if (movement) {
-            startButton.disabled = false; // Enable Start Session button
-          } else {
-            startButton.disabled = true; // Disable Start Session button if no movement selected
-          }
-        });
-
-      // Start Session Button functionality
-      document
-        .getElementById("startSessionBtn")
-        .addEventListener("click", async () => {
-          const movement = document.getElementById("movementSelect").value;
+        .getElementById("loginForm")
+        .addEventListener("submit", async (e) => {
+          e.preventDefault();
+          const email = document.getElementById("loginEmail").value;
+          const password = document.getElementById("loginPassword").value;
 
           try {
-            const response = await fetch("/sessions/start", {
+            const response = await fetch("/login", {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
               },
-              body: JSON.stringify({ movement_type: movement }),
+              body: JSON.stringify({ email, password }),
             });
 
             const data = await response.json();
-
             if (data.status === "success") {
-              // Session started, hide Start Session button and show End Session button
-              sessionStarted = true;
-              document.getElementById("startSessionBtn").style.display = "none";
-              document.getElementById("endSessionBtn").style.display = "block";
+              alert("Login successful!");
+              window.location.href = "/dashboard"; // Redirect to dashboard
+            } else {
+              alert("Error during login: " + data.message);
             }
           } catch (error) {
             console.error("Error:", error);
-            alert("An error occurred while starting the session.");
-          }
-        });
-
-      // End Session Button functionality
-      document
-        .getElementById("endSessionBtn")
-        .addEventListener("click", async () => {
-          try {
-            const response = await fetch("/end_session", {
-              method: "POST",
-            });
-
-            const data = await response.json();
-
-            if (data.status === "success") {
-              // Show analysis results
-              const resultsSection = document.getElementById("resultsSection");
-              resultsSection.style.display = "block";
-
-              // Update metrics
-              document.getElementById(
-                "classificationScore"
-              ).textContent = `${data.results.classification_confidence}%`;
-              document.getElementById(
-                "stabilityScore"
-              ).textContent = `${data.results.stability_score}%`;
-              document.getElementById(
-                "balanceScore"
-              ).textContent = `${data.results.balance_score}%`;
-              document.getElementById("anomalyStatus").textContent = data
-                .results.anomaly_detected
-                ? "Detected"
-                : "Normal";
-
-              // Update suggestions
-              const suggestionsDiv = document.getElementById("suggestions");
-              suggestionsDiv.innerHTML = "";
-
-              data.results.suggestions.forEach((suggestion) => {
-                const card = document.createElement("div");
-                card.className = `card suggestion-card ${suggestion.type} mb-3`;
-
-                const cardBody = document.createElement("div");
-                cardBody.className = "card-body";
-
-                const title = document.createElement("h6");
-                title.className = "card-title";
-                title.textContent = suggestion.message;
-
-                const details = document.createElement("ul");
-                details.className = "detail-list";
-                suggestion.details.forEach((detail) => {
-                  const li = document.createElement("li");
-                  li.textContent = detail;
-                  details.appendChild(li);
-                });
-
-                cardBody.appendChild(title);
-                cardBody.appendChild(details);
-                card.appendChild(cardBody);
-                suggestionsDiv.appendChild(card);
-              });
-
-              // Update anomaly plot if available
-              const anomalyPlot = document.getElementById("anomalyPlot");
-              if (data.results.plot_url) {
-                anomalyPlot.src = data.results.plot_url;
-                anomalyPlot.style.display = "block";
-              } else {
-                anomalyPlot.style.display = "none";
-              }
-
-              // Hide End Session button
-              document.getElementById("endSessionBtn").style.display = "none";
-            }
-          } catch (error) {
-            console.error("Error:", error);
-            alert("An error occurred while ending the session.");
+            alert("An error occurred during login.");
           }
         });
     </script>
