@@ -35,7 +35,7 @@
       .form-control {
         background-color: #444;
         border-color: #555;
-        color: #f39c12; /* Altın sarısı metin */
+        color: #f39c12;
       }
 
       .form-control:focus {
@@ -65,6 +65,35 @@
           <h5 class="card-title">Sign Up</h5>
           <form id="signupForm">
             <div class="mb-3">
+              <label for="signupFirstName" class="form-label">First Name</label>
+              <input
+                type="text"
+                class="form-control"
+                id="signupFirstName"
+                required
+              />
+            </div>
+
+            <div class="mb-3">
+              <label for="signupLastName" class="form-label">Last Name</label>
+              <input
+                type="text"
+                class="form-control"
+                id="signupLastName"
+                required
+              />
+            </div>
+
+            <div class="mb-3">
+              <label for="signupRole" class="form-label">Role</label>
+              <select class="form-select" id="signupRole" required>
+                <option value="">Select Role</option>
+                <option value="athlete">Athlete</option>
+                <option value="trainer">Trainer</option>
+              </select>
+            </div>
+
+            <div class="mb-3">
               <label for="signupEmail" class="form-label">Email</label>
               <input
                 type="email"
@@ -73,6 +102,7 @@
                 required
               />
             </div>
+
             <div class="mb-3">
               <label for="signupPassword" class="form-label">Password</label>
               <input
@@ -82,8 +112,12 @@
                 required
               />
             </div>
+
             <button type="submit" class="btn btn-primary w-100">Sign Up</button>
           </form>
+
+          <!-- Alert Message -->
+          <div id="alertMessage" class="alert mt-3 d-none" role="alert"></div>
         </div>
       </div>
     </div>
@@ -93,8 +127,14 @@
         .getElementById("signupForm")
         .addEventListener("submit", async (e) => {
           e.preventDefault();
+
+          const firstName = document.getElementById("signupFirstName").value;
+          const lastName = document.getElementById("signupLastName").value;
+          const role = document.getElementById("signupRole").value;
           const email = document.getElementById("signupEmail").value;
           const password = document.getElementById("signupPassword").value;
+
+          const alertBox = document.getElementById("alertMessage");
 
           try {
             const response = await fetch("/signup", {
@@ -102,19 +142,37 @@
               headers: {
                 "Content-Type": "application/json",
               },
-              body: JSON.stringify({ email, password }),
+              body: JSON.stringify({
+                first_name: firstName,
+                last_name: lastName,
+                role: role,
+                email: email,
+                password: password,
+              }),
             });
 
             const data = await response.json();
+
             if (data.status === "success") {
-              alert("Sign Up successful!");
-              window.location.href = "/login"; // Redirect to login
+              alertBox.textContent =
+                "🎉 Kayıt başarılı! 5 saniye içinde giriş sayfasına yönlendirileceksiniz.";
+              alertBox.className = "alert alert-success mt-3";
+              alertBox.classList.remove("d-none");
+
+              // 5 saniye sonra /login'e yönlendir
+              setTimeout(() => {
+                window.location.href = "/login";
+              }, 5000);
             } else {
-              alert("Error during sign up: " + data.message);
+              alertBox.textContent = "⚠️ Hata: " + data.message;
+              alertBox.className = "alert alert-danger mt-3";
+              alertBox.classList.remove("d-none");
             }
           } catch (error) {
             console.error("Error:", error);
-            alert("An error occurred during sign up.");
+            alertBox.textContent = "❌ Kayıt sırasında bir hata oluştu.";
+            alertBox.className = "alert alert-danger mt-3";
+            alertBox.classList.remove("d-none");
           }
         });
     </script>

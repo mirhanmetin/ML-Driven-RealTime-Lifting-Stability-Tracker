@@ -1,4 +1,5 @@
 import pyrebase
+import os
 
 firebaseConfig = {
     'apiKey': os.getenv('FIREBASE_API_KEY'),

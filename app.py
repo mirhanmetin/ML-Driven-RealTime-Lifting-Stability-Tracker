@@ -17,6 +17,8 @@ from sklearn.preprocessing import MinMaxScaler
 import matplotlib.pyplot as plt
 from sqlalchemy import text
 import uuid
+from utils.auth import auth
+
 
 # Load dotenv file
 load_dotenv()
@@ -40,14 +42,14 @@ db.init_app(app)
 
 # Test database connection and log the result
 with app.app_context():
-    try:
-        # Test database connection
-        db.session.execute(text("SELECT 1"))
-        db.session.commit()
-        logger.info("✅ Successfully connected to the database!")
-    except Exception as e:
-        logger.error(f"❌ Failed to connect to the database: {e}")
-        raise
+    connection = db.engine.connect()
+    result = connection.execute(text("SELECT current_database();"))
+    db_name = result.scalar()
+    logger.info(f"⚠️ Şu an bağlı olunan veritabanı: {db_name}")
+
+    # except Exception as e:
+    #     logger.error(f"❌ Failed to connect to the database: {e}")
+    #     raise
 
 # Initialize ML system
 logger.info("Initializing anomaly detection system...")
@@ -143,23 +145,36 @@ def signup_page():
     # Render the signup.html page
     return render_template('signup.html')  # Render the signup.html page
 
+
 @app.route('/signup', methods=['POST'])
 def signup_user():
     try:
         data = request.get_json()
         email = data.get('email')
         password = data.get('password')
+        first_name = data.get('first_name')
+        last_name = data.get('last_name')
+        role = data.get('role')
 
-        # Use the signup function from auth.py
-        user = signup(email, password)
-        
-        if "error" in user:
-            return jsonify({'status': 'error', 'message': user["error"]}), 400
-        
-        return jsonify({'status': 'success', 'message': 'User registered successfully', 'user': user}), 200
+        # Firebase kullanıcı oluştur
+        user = auth.create_user_with_email_and_password(email, password)
+
+        # PostgreSQL'e kaydet
+        new_user = User(
+            first_name=first_name,
+            last_name=last_name,
+            email=email,
+            role=role,
+            firebase_uid=user['localId']
+        )
+        db.session.add(new_user)
+        db.session.commit()
+
+        return jsonify({'status': 'success', 'message': 'User registered successfully'}), 200
+
     except Exception as e:
+        logger.error(f"Signup error: {str(e)}")
         return jsonify({'status': 'error', 'message': f"Error during signup: {str(e)}"}), 500
-
 
 @app.route('/login', methods=['GET'])
 def login_page():
