@@ -67,3 +67,31 @@ Phyton and/or Phyton3 -> Phyton version should be one of tensorflow satisfied ve
             20 -> (20−20)/(80−20)=0
             50 -> (50−20)/(80−20)=30/60=0.5
             80 -> (80−20)/(80−20)=1
+
+--- Databases ---
+
+    Connection String:
+        terminal -> PGPASSWORD=EzoBNoVJIZgMoVscYsURFdcNvwRAKjac psql -h interchange.proxy.rlwy.net -U postgres -p 57128 -d railway
+
+    - Tables -
+
+    Types:
+        1. lift_types: ["squat", "bench_press", "deadlift"]
+            query: CREATE TYPE lift_type AS ENUM ('squat', 'bench_press', 'deadlift');
+
+
+    1. Users
+
+        a. SQL Query:
+
+        CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
+        CREATE TABLE users (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            first_name VARCHAR(100) NOT NULL,
+            last_name VARCHAR(100) NOT NULL,
+            email VARCHAR(255) UNIQUE NOT NULL,
+            role VARCHAR(50) CHECK (role IN ('trainer', 'athlete', 'admin')),
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );

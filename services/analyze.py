@@ -4,9 +4,9 @@ matplotlib.use('Agg')
 import numpy as np
 import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
-from lstm_model import build_lstm_autoencoder
-from anomaly_detection import run_isolation_forest, run_oneclass_svm
-from logic_rules import logical_check
+from services.lstm_model import build_lstm_autoencoder
+from services.anomaly_detection import run_isolation_forest, run_oneclass_svm
+from services.logic_rules import logical_check
 import matplotlib.pyplot as plt
 import os
 

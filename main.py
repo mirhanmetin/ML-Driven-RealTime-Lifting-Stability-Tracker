@@ -1,4 +1,4 @@
-from data_preprocessing import load_and_clean_data
+from utils.data_preprocessing import load_and_clean_data
 from lstm_model import build_lstm_autoencoder
 from anomaly_detection import run_isolation_forest, run_oneclass_svm
 from logic_rules import logical_check
