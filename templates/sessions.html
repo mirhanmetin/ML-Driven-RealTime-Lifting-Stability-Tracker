@@ -202,9 +202,10 @@
             const data = await response.json();
             if (data.status === "success") {
               alert("✅ Session started!");
-              currentSessionId = data.session_id;
-              document.getElementById("startSessionBtn").style.display = "none";
-              document.getElementById("endSessionBtn").style.display = "block";
+              window.location.href = data.redirect_url;
+              //   currentSessionId = data.session_id;
+              //   document.getElementById("startSessionBtn").style.display = "none";
+              //   document.getElementById("endSessionBtn").style.display = "block";
             } else {
               alert("Error starting session: " + data.message);
             }

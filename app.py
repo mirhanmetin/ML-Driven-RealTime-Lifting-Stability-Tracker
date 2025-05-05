@@ -195,12 +195,117 @@ def start_session():
 
         return jsonify({
             'status': 'success',
-            'message': f"Session started with ID: {new_session.id}"
+            'message': f"Session started with ID: {new_session.id}",
+            'redirect_url': f"/sessions/{new_session.id}"
         }), 200
 
     except Exception as e:
         db.session.rollback()
         logger.error(f"❌ Error starting session: {str(e)}")
+        return jsonify({'status': 'error', 'message': f"Error: {str(e)}"}), 500
+
+@app.route('/sessions/<session_id>')
+@login_required
+def session_detail(session_id):
+    try:
+        current_session = Sessions.query.filter_by(id=session_id).first()
+
+        if not current_session:
+            return "Session not found", 404
+
+        # İstersen burada sensör datasını da çekebilirsin:
+        sensor_data = SensorData.query.filter_by(session=session_id).all()
+
+        return render_template('session_detail.html', session=current_session, sensor_data=sensor_data)
+
+    except Exception as e:
+        logger.error(f"Error loading session detail: {str(e)}")
+        return "An error occurred loading the session detail page.", 500
+
+@app.route('/sessions/upload_sensor_data', methods=['POST'])
+@login_required
+def upload_sensor_data():
+    try:
+        if 'csv_file' not in request.files:
+            return jsonify({'status': 'error', 'message': 'No file part in request'}), 400
+
+        file = request.files['csv_file']
+        session_id = request.form.get('session_id')
+
+        if not file or not session_id:
+            return jsonify({'status': 'error', 'message': 'Missing file or session ID'}), 400
+
+        # Read CSV into pandas DataFrame
+        df = pd.read_csv(file)
+
+        required_columns = {'timestamp', 'value_x', 'value_y', 'value_z'}
+        if not required_columns.issubset(df.columns):
+            return jsonify({'status': 'error', 'message': 'CSV must contain timestamp, value_x, value_y, value_z columns'}), 400
+
+        # Insert each row as SensorData
+        for _, row in df.iterrows():
+            new_data = SensorData(
+                session_id=session_id,
+                timestamp=pd.to_datetime(row['timestamp']),
+                value_x=row['value_x'],
+                value_y=row['value_y'],
+                value_z=row['value_z']
+            )
+            db.session.add(new_data)
+
+        db.session.commit()
+        logger.info(f"✅ Uploaded sensor data for session {session_id}")
+        return jsonify({'status': 'success', 'message': 'Sensor data uploaded successfully'}), 200
+
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"❌ Error uploading sensor data: {str(e)}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+
+@app.route('/sessions/end', methods=['POST'])
+@login_required
+def end_session():
+    try:
+        data = request.get_json()
+        session_id = data.get('session_id')
+
+        if not session_id:
+            return jsonify({'status': 'error', 'message': 'Session ID is required'}), 400
+
+        current_session = Sessions.query.filter_by(id=session_id).first()
+
+        if not current_session:
+            logger.warning(f"Session not found: {session_id}")
+            return jsonify({'status': 'error', 'message': 'Session not found'}), 404
+
+        # Session'ı kapat
+        current_session.status = 'ended'
+        current_session.ended_at = db.func.now()
+
+        # Sensör datasını kontrol et (varsayılan olarak session_id ile bağlıysa)
+        sensor_data_exists = SensorData.query.filter_by(session_id=session_id).first() is not None
+
+        results = None
+        if sensor_data_exists:
+            logger.info(f"Sensor data found for session {session_id}, running analysis...")
+            results = run_analysis()  # run_analysis içinde session_id'yi kullanmak istiyorsan parametre ekleyebilirsin
+        else:
+            logger.info(f"No sensor data found for session {session_id}, skipping analysis.")
+
+        db.session.commit()
+
+        response = {
+            'status': 'success',
+            'message': f"Session {session_id} ended successfully.",
+            'analysis_results': results if results else 'No sensor data, analysis skipped.'
+        }
+
+        return jsonify(response), 200
+
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Error ending session: {str(e)}")
         return jsonify({'status': 'error', 'message': f"Error: {str(e)}"}), 500
 
 
