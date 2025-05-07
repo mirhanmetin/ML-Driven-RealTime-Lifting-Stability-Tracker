@@ -53,6 +53,10 @@ Phyton and/or Phyton3 -> Phyton version should be one of tensorflow satisfied ve
 
     $ pip install numpy pandas matplotlib scikit-learn tensorflow
 
+--- Run the project ---
+
+    $ phyton app.py
+
 --- Structure
 
     1. Load data and clean
