@@ -26,4 +26,5 @@ def build_lstm_autoencoder(timesteps, n_features):
         TimeDistributed(Dense(n_features))
     ])
     model.compile(optimizer='adam', loss='mse')
+
     return model

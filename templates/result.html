@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Session Report - {{ session.lift_type|capitalize }}</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        background-color: #121212;
+        color: #f39c12;
+        font-family: Arial, sans-serif;
+        padding: 20px;
+      }
+      h1,
+      h2,
+      h3 {
+        color: #f39c12;
+      }
+      .card {
+        margin-bottom: 20px;
+        background-color: #2d2d2d;
+        border: none;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+      }
+    </style>
+  </head>
+  <body>
+    <a href="/dashboard" class="btn btn-primary mb-3">⬅️ Back to Dashboard</a>
+
+    <h1>Session Report - {{ session.lift_type|capitalize }}</h1>
+
+    <div class="card p-3">
+      <h3>General Metrics</h3>
+      <p>
+        <strong>Balance Score:</strong> {{ "%.2f"|format(metrics.balance_score)
+        }}
+      </p>
+      <p>
+        <strong>Stability Score:</strong> {{
+        "%.2f"|format(metrics.stability_score) }}
+      </p>
+      <p>
+        <strong>Injury Risk:</strong> {{ "%.2f"|format(metrics.injury_risk) }}
+      </p>
+    </div>
+
+    <div class="card p-3">
+      <h3>Feedback Summary</h3>
+      <p>{{ feedback.feedback_text }}</p>
+    </div>
+
+    <div class="card p-3">
+      <h3>Session Details</h3>
+      <p><strong>Status:</strong> {{ session.status }}</p>
+      <p><strong>Started At:</strong> {{ session.started_at }}</p>
+      <p><strong>Ended At:</strong> {{ session.ended_at }}</p>
+    </div>
+  </body>
+</html>

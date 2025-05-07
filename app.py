@@ -1,21 +1,24 @@
-from flask import Flask, request, jsonify, render_template, redirect, url_for, session
+from flask import Flask, request, jsonify, render_template, redirect, url_for, session as flask_session
 import logging
 import traceback
 import os
 from dotenv import load_dotenv
+from flask_socketio import SocketIO, emit, join_room
+
+import threading
+import time
 
 # Importing models from models folder
 from models import db, User, Sessions, Feedback, PerformanceMetrics, SensorData
 
 # Importing services for the business logic
-from services import build_lstm_autoencoder, run_isolation_forest, logical_check, run_analysis
+from services import build_lstm_autoencoder, run_isolation_forest, logical_check, run_analysis_realtime
 
 # Importing additional utilities
 import numpy as np
 import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
 import matplotlib.pyplot as plt
-from sqlalchemy import text
 import uuid
 from utils.auth import auth, signup, login  # login buraya dikkat!
 from utils.auth_decorator import login_required
@@ -34,8 +37,11 @@ logger = logging.getLogger(__name__)
 app = Flask(__name__)
 app.secret_key = os.getenv('SECRET_KEY', 'fallback_dev_key')
 
+# Flask app’ine SocketIO ekle
+socketio = SocketIO(app)
+
 # App configuration for SQLAlchemy
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL')  # from .env
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # Initialize SQLAlchemy
@@ -54,7 +60,7 @@ try:
 
     if os.path.exists('trained_lstm_model.h5'):
         logger.info("Loading trained LSTM model weights...")
-        lstm_model.load_weights('trained_lstm_model.h5')
+        lstm_model.load_weights('trained_lstm_model.weights.h5')
         logger.info("LSTM model weights loaded successfully")
     else:
         logger.warning("No pre-trained LSTM model found. Model is untrained.")
@@ -85,10 +91,8 @@ def signup_user():
         last_name = data.get('last_name')
         role = data.get('role')
 
-        # Firebase kullanıcı oluştur
         user = auth.create_user_with_email_and_password(email, password)
 
-        # PostgreSQL'e kaydet
         new_user = User(
             first_name=first_name,
             last_name=last_name,
@@ -119,14 +123,12 @@ def login_user():
         if not email or not password:
             return jsonify({'status': 'error', 'message': 'Email and password are required'}), 400
 
-        # Doğru login fonksiyonunu çağırıyoruz
         user = login(email, password)
 
         if "error" in user:
             return jsonify({'status': 'error', 'message': user['error']}), 400
 
-        # ✅ Login başarılı
-        session['user_id'] = user['id']
+        flask_session['user_id'] = user['id']
         logger.info(f"User logged in successfully: {user['email']}")
         return jsonify({'status': 'success', 'message': 'Login successful! Redirecting...', 'redirect_url': '/dashboard'}), 200
 
@@ -142,34 +144,25 @@ def dashboard():
 @login_required
 def sessions():
     logger.info("Rendering sessions page")
-
     try:
-        # Trainer'ları veritabanından çekiyoruz
-        trainers = User.query.filter_by(role='trainer').all()
-
-        # İsimleri birleştiriyoruz
+        trainers = User.query.filter(User.role == 'trainer').all()
         trainer_options = [
             {'id': str(trainer.id), 'full_name': f"{trainer.first_name} {trainer.last_name}"}
             for trainer in trainers
         ]
-    
         return render_template('sessions.html', trainers=trainer_options)
-
     except Exception as e:
         logger.error(f"Error loading trainers: {str(e)}")
         return "An error occurred loading the sessions page", 500
 
-
-@app.route('/sessions/start', methods=['POST'])
+@app.route('/sessions', methods=['POST'])
 @login_required
 def start_session():
     try:
         data = request.get_json()
         lift_type = data.get('lift_type')
         trainer_id = data.get('trainer_id')
-
-        # 🛑 Burada GİRİŞ yapan kullanıcıyı çekiyoruz (Flask session'dan)
-        athlete_id = session.get('user_id')
+        athlete_id = flask_session.get('user_id')
 
         if not athlete_id:
             logger.warning("Unauthorized attempt to start a session (no athlete ID)")
@@ -180,7 +173,7 @@ def start_session():
             return jsonify({'status': 'error', 'message': 'Missing required fields'}), 400
 
         new_session = Sessions(
-            id=uuid.uuid4(),
+            id=str(uuid.uuid4()),
             lift_type=lift_type,
             trainer=trainer_id,
             athlete=athlete_id,
@@ -204,129 +197,200 @@ def start_session():
         logger.error(f"❌ Error starting session: {str(e)}")
         return jsonify({'status': 'error', 'message': f"Error: {str(e)}"}), 500
 
+
 @app.route('/sessions/<session_id>')
 @login_required
 def session_detail(session_id):
     try:
-        current_session = Sessions.query.filter_by(id=session_id).first()
-
+        current_session = Sessions.query.filter(Sessions.id == session_id).first()
         if not current_session:
             return "Session not found", 404
 
-        # İstersen burada sensör datasını da çekebilirsin:
-        sensor_data = SensorData.query.filter_by(session=session_id).all()
+        sensor_data_entry = SensorData.query.filter(SensorData.session == session_id).first()
+        data_list = []
+        if sensor_data_entry and sensor_data_entry.raw_data:
+            data_list = sensor_data_entry.raw_data
 
-        return render_template('session_detail.html', session=current_session, sensor_data=sensor_data)
-
+        return render_template(
+            'session_detail.html',
+            session=current_session,
+            sensor_data=data_list
+        )
     except Exception as e:
         logger.error(f"Error loading session detail: {str(e)}")
         return "An error occurred loading the session detail page.", 500
 
-@app.route('/sessions/upload_sensor_data', methods=['POST'])
+@app.route('/sessions/<session_id>/sensor_data', methods=['POST'])
 @login_required
-def upload_sensor_data():
+def upload_sensor_data(session_id):
     try:
+        # Check if file is in request
         if 'csv_file' not in request.files:
             return jsonify({'status': 'error', 'message': 'No file part in request'}), 400
 
         file = request.files['csv_file']
-        session_id = request.form.get('session_id')
 
-        if not file or not session_id:
-            return jsonify({'status': 'error', 'message': 'Missing file or session ID'}), 400
+        # Check if session exists
+        session_obj = Sessions.query.filter_by(id=session_id).first()
+        if not session_obj:
+            return jsonify({'status': 'error', 'message': 'Session not found'}), 404
 
-        # Read CSV into pandas DataFrame
+        # Read CSV into DataFrame
         df = pd.read_csv(file)
-
-        required_columns = {'timestamp', 'value_x', 'value_y', 'value_z'}
+        required_columns = {'left_foot_pressure', 'right_foot_pressure', 'core_stability'}
         if not required_columns.issubset(df.columns):
-            return jsonify({'status': 'error', 'message': 'CSV must contain timestamp, value_x, value_y, value_z columns'}), 400
+            return jsonify({'status': 'error', 'message': 'CSV missing required columns'}), 400
 
-        # Insert each row as SensorData
-        for _, row in df.iterrows():
-            new_data = SensorData(
-                session_id=session_id,
-                timestamp=pd.to_datetime(row['timestamp']),
-                value_x=row['value_x'],
-                value_y=row['value_y'],
-                value_z=row['value_z']
-            )
-            db.session.add(new_data)
+        # Save raw sensor data
+        sensor_data_list = df.to_dict(orient='records')
+        new_sensor_data = SensorData(
+            id=str(uuid.uuid4()),
+            session=session_obj.id,
+            athlete=session_obj.athlete,
+            raw_data=sensor_data_list
+        )
 
+        db.session.add(new_sensor_data)
+        db.session.flush()  # Get generated ID
+
+        # Update session with sensor_data_id
+        session_obj.sensor_data_id = new_sensor_data.id
         db.session.commit()
-        logger.info(f"✅ Uploaded sensor data for session {session_id}")
-        return jsonify({'status': 'success', 'message': 'Sensor data uploaded successfully'}), 200
+
+        logger.info(f"✅ Sensor data saved for session {session_id}, starting real-time analysis...")
+
+        # Start real-time analysis in background
+        threading.Thread(target=run_analysis_realtime, args=(session_id, df, socketio)).start()
+
+        return jsonify({'status': 'success', 'message': 'Sensor data uploaded and real-time analysis started.'}), 200
 
     except Exception as e:
         db.session.rollback()
-        logger.error(f"❌ Error uploading sensor data: {str(e)}")
-        return jsonify({'status': 'error', 'message': str(e)}), 500
+        logger.error(f"❌ Error uploading sensor data for session {session_id}: {str(e)}", exc_info=True)
+        return jsonify({'status': 'error', 'message': f"Internal error: {str(e)}"}), 500
 
-
-@app.route('/sessions/end', methods=['POST'])
+@app.route('/sessions/<session_id>/end', methods=['POST'])
 @login_required
-def end_session():
+def end_session(session_id):
     try:
-        data = request.get_json()
-        session_id = data.get('session_id')
-
-        if not session_id:
-            return jsonify({'status': 'error', 'message': 'Session ID is required'}), 400
-
-        current_session = Sessions.query.filter_by(id=session_id).first()
-
+        # Fetch session
+        current_session = Sessions.query.filter(Sessions.id == session_id).first()
         if not current_session:
-            logger.warning(f"Session not found: {session_id}")
             return jsonify({'status': 'error', 'message': 'Session not found'}), 404
 
-        # Session'ı kapat
+        if current_session.status == 'ended':
+            return jsonify({'status': 'error', 'message': 'Session already ended'}), 400
+
+        # Fetch sensor data
+        sensor_data_entry = SensorData.query.filter_by(session=session_id).first()
+        if not sensor_data_entry or not sensor_data_entry.raw_data:
+            return jsonify({'status': 'error', 'message': 'No sensor data found for this session'}), 404
+
+        df = pd.DataFrame(sensor_data_entry.raw_data)
+        features = ['left_foot_pressure', 'right_foot_pressure', 'core_stability']
+        if not set(features).issubset(df.columns):
+            return jsonify({'status': 'error', 'message': 'Sensor data missing required features'}), 400
+
+        # Calculate performance metrics
+        avg_left = float(df['left_foot_pressure'].mean())
+        avg_right = float(df['right_foot_pressure'].mean())
+        avg_core = float(df['core_stability'].mean())
+        balance_score = float(1 - abs(avg_left - avg_right))
+        stability_score = float(avg_core)
+        injury_risk = float(1 - (balance_score * stability_score))
+
+        # Save performance metrics
+        perf_metrics_id = str(uuid.uuid4())
+        perf_metrics = PerformanceMetrics(
+            id=perf_metrics_id,
+            session=session_id,
+            balance_score=balance_score,
+            stability_score=stability_score,
+            injury_risk=injury_risk
+        )
+        db.session.add(perf_metrics)
+        db.session.flush()  # ⭐ flush ensures perf_metrics.id exists in DB for foreign key
+
+        # Create feedback text
+        alerts = []
+        if balance_score < 0.6:
+            alerts.append("Denge sorunları tespit edildi.")
+        if stability_score < 0.6:
+            alerts.append("Çekirdek stabilitesi düşük.")
+        if injury_risk > 0.7:
+            alerts.append("Yüksek sakatlanma riski.")
+        if not alerts:
+            alerts.append("Performans mükemmel, hiçbir sorun bulunmadı!")
+
+        # Save feedback
+        feedback = Feedback(
+            id=str(uuid.uuid4()),
+            session=session_id,
+            metrics_id=perf_metrics_id,  # connect to metrics
+            feedback_text=" ".join(alerts)
+        )
+        db.session.add(feedback)
+
+        # Mark session as ended
         current_session.status = 'ended'
         current_session.ended_at = db.func.now()
 
-        # Sensör datasını kontrol et (varsayılan olarak session_id ile bağlıysa)
-        sensor_data_exists = SensorData.query.filter_by(session_id=session_id).first() is not None
-
-        results = None
-        if sensor_data_exists:
-            logger.info(f"Sensor data found for session {session_id}, running analysis...")
-            results = run_analysis()  # run_analysis içinde session_id'yi kullanmak istiyorsan parametre ekleyebilirsin
-        else:
-            logger.info(f"No sensor data found for session {session_id}, skipping analysis.")
-
+        # Commit all at once
         db.session.commit()
 
-        response = {
-            'status': 'success',
-            'message': f"Session {session_id} ended successfully.",
-            'analysis_results': results if results else 'No sensor data, analysis skipped.'
-        }
+        logger.info(f"✅ Session {session_id} ended. Metrics and feedback saved.")
 
-        return jsonify(response), 200
+        return jsonify({
+            'status': 'success',
+            'message': 'Session ended successfully. Metrics and feedback saved.',
+            'redirect_url': f"/sessions/{session_id}/details"
+        }), 200
 
     except Exception as e:
         db.session.rollback()
-        logger.error(f"Error ending session: {str(e)}")
-        return jsonify({'status': 'error', 'message': f"Error: {str(e)}"}), 500
+        logger.error(f"❌ Error ending session {session_id}: {str(e)}", exc_info=True)
+        return jsonify({'status': 'error', 'message': f"Internal error: {str(e)}"}), 500
 
-
-@app.route('/analyze', methods=['POST'])
+@app.route('/sessions/<session_id>/details', methods=['GET'])
 @login_required
-def analyze():
+def session_details_page(session_id):
     try:
-        data = request.get_json()
-        movement_type = data.get('movement_type')
+        current_session = Sessions.query.filter(Sessions.id == session_id).first()
+        if not current_session:
+            return "Session not found", 404
 
-        # Run analysis
-        results = run_analysis()
+        metrics = PerformanceMetrics.query.filter_by(session=session_id).first()
+        feedback = Feedback.query.filter_by(session=session_id).first()
 
-        return jsonify({'status': 'success', 'results': results})
+        if not metrics or not feedback:
+            return "Metrics or feedback not found for this session", 404
+
+        return render_template(
+            'session_details.html',
+            session=current_session,
+            metrics=metrics,
+            feedback=feedback
+        )
     except Exception as e:
-        logger.error(f"Error during analysis: {str(e)}")
-        return jsonify({'status': 'error', 'message': str(e)}), 500
+        logger.error(f"❌ Error loading session details: {str(e)}", exc_info=True)
+        return "An error occurred loading session details page.", 500
+
+
+@socketio.on('connect')
+def handle_connect():
+    logger.info("Client connected.")
+
+@socketio.on('disconnect')
+def handle_disconnect():
+    logger.info("Client disconnected.")
+
+
+@socketio.on('join')
+def on_join(room_id):
+    join_room(room_id)
+    logger.info(f"Client joined room {room_id}")
 
 if __name__ == '__main__':
-    logger.info("Starting Flask anomaly detection API (file-based with plot)...")
-    app.run(debug=True, port=5000)
-    logger.info("Flask API started successfully")
-    logger.info("Flask API is running on port 5000")
-    logger.info("Flask API is ready to accept requests")
+    logger.info("Starting Flask anomaly detection API...")
+    socketio.run(app, debug=True, port=5000)
+

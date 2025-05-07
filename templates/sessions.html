@@ -191,7 +191,7 @@
           }
 
           try {
-            const response = await fetch("/sessions/start", {
+            const response = await fetch("/sessions", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
