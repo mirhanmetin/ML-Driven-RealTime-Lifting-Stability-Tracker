@@ -366,7 +366,7 @@ def session_details_page(session_id):
             return "Metrics or feedback not found for this session", 404
 
         return render_template(
-            'session_details.html',
+            'result.html',
             session=current_session,
             metrics=metrics,
             feedback=feedback

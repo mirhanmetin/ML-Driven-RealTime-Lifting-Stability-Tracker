@@ -65,8 +65,8 @@ results['LSTM_MSE'] = mse
 results['LSTM_Anomaly'] = mse > threshold
 results['ISO_Anomaly'] = iso_anomalies
 results['SVM_Anomaly'] = svm_anomalies
-results['Final_Anomaly'] = ((results['LSTM_Anomaly'] & results['SVM_Anomaly']) |
-                            (results['LSTM_Anomaly'] & results['ISO_Anomaly']))
+results['Final_Anomaly'] = (results['LSTM_Anomaly'] | (results['SVM_Anomaly'] & results['ISO_Anomaly']))
+
 
 # 8️⃣ Mantıksal kontroller
 results['Logic_Alert'] = results.apply(lambda row: logical_check(row, threshold), axis=1)

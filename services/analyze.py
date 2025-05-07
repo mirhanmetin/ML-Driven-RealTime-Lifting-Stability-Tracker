@@ -50,8 +50,8 @@ def run_analysis_realtime(session_id, df, socketio):
     results['LSTM_Anomaly'] = lstm_anomalies
     results['ISO_Anomaly'] = iso_anomalies
     results['SVM_Anomaly'] = svm_anomalies
-    results['Final_Anomaly'] = ((results['LSTM_Anomaly'] & results['SVM_Anomaly']) |
-                                (results['LSTM_Anomaly'] & results['ISO_Anomaly']))
+    results['Final_Anomaly'] = (results['LSTM_Anomaly'] | (results['SVM_Anomaly'] & results['ISO_Anomaly']))
+
 
     results['Logic_Alert'] = results.apply(lambda row: logical_check(row, threshold), axis=1)
 
