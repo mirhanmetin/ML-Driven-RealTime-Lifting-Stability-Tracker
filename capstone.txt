@@ -1,0 +1,110 @@
+# Project Outline
+
+### **Project Title:**
+
+**Development of a Balance and Stability Measurement System for Powerlifting with Machine Learning Integration**
+
+---
+
+### **1. Introduction**
+
+- **Overview of Powerlifting**: Briefly introduce powerlifting and its core movements: the squat, deadlift, and bench press.
+- **Importance of Balance and Stability**: Explain the roles of balance and stability in ensuring safe, effective lifting and reducing injury risk.
+- **Objective**: Define the primary goal of the project—to study balance and stability across powerlifting movements and use sensors to identify correct and incorrect movement patterns.
+
+---
+
+### **2. Project Aim**
+
+- **Aim**: To develop a system to measure balance and stability during powerlifting exercises, tracking the distribution of weight across the feet and monitoring core stability during the bench press.
+
+---
+
+### **3. Project Purpose**
+
+- **Purpose**: This project aims to develop a system to measure and analyze balance and stability during key powerlifting exercises, focusing on the bench press, squats, and deadlifts. Utilizing pressure-sensitive insoles, force platforms, or wearable IMUs, the system will track real-time weight distribution across the feet and monitor core stability to ensure optimal form and enhance performance.
+- The collected data will enable athletes and trainers to identify balance shifts and stability deviations, providing actionable insights for improving lifting techniques, reducing injury risk, and maximizing training effectiveness. This tool will serve as a valuable resource for both novice and experienced powerlifters in achieving peak performance.
+- A machine learning (ML) component will be integrated to analyze this data, enabling the system to identify subtle patterns in balance and stability unique to each athlete’s lifting style. By training ML models on a diverse dataset of lifting techniques (not a must) and stability profiles, the system will provide personalized feedback, detect atypical movements, and predict potential injury risks based on deviations from an athlete’s typical form.
+
+---
+
+### **4. Literature Review**
+
+- **Biomechanics of Powerlifting**:
+    - Detailed review of biomechanics for the squat, deadlift, and bench press, focusing on joint angles, muscle engagement, and movement phases.
+- **Balance and Stability in Strength Training**: Discuss existing research on stability requirements, especially under heavy loads.
+- **Sensor Technology in Biomechanical Research**: Explore the use of IMUs or other sensors in assessing movement, balance, and stability in exercise and sports.
+
+---
+
+### **5. Methods**
+
+- **Powerlifting Movements and Scope**: Focus on:
+    - **Deadlift** and **Squat** (Aya)
+    - **Bench Press** (Yiğit)
+- **Defining “Correct” vs. “Incorrect” Movements**:
+    - Establish criteria for assessing proper form, like joint angles, balance points, and weight distribution.
+- **Testing Procedure**:
+    - Participant recruitment: Identify the ideal subject profile (e.g., varying skill levels).
+    - Sensor Placement: Outline the placement of sensors for tracking key body segments.
+    - Testing Format: Detail the procedure for each lift (reps, rest periods, and instructions for correct/incorrect form trials).
+
+---
+
+### **6. Data Collection and Analysis**
+
+- **Data Collection**:
+    - Outline the specific types of data to be collected by the sensors (e.g., angular velocity, position, stability metrics).
+- **Data Analysis**:
+    - Explain how data will be analyzed to determine stability, balance, and form accuracy.
+    - Metrics: Define stability and balance metrics for each movement.
+- **Error Analysis and Correction Feedback**:
+    - Identify how data will indicate movement errors and suggest potential corrective feedback.
+
+---
+
+### **7. Expected Outcomes**
+
+- **Expected Findings on Balance and Stability**:
+    - Hypothesize expected balance and stability requirements for each lift.
+- **Potential Injury Mechanisms**:
+    - Predict common errors and the associated risks, particularly in squat and deadlift movements.
+- **Implications for Injury Prevention**:
+    - Discuss how the findings can help inform safer powerlifting practices and targeted training for improved stability and injury prevention.
+
+---
+
+### **8. Challenges and Limitations**
+
+- **Technical Challenges**: Discuss potential issues with sensor accuracy, placement, or data processing.
+- **Testing Constraints**: Address participant availability, consistency in testing conditions, and ensuring accurate movement assessment.
+
+---
+
+### **9. Project Timeline**
+
+**Theoretical Research Timeline (Semester 1)**
+
+- **Weeks 6-7**:
+    - **In-Depth Literature Review**: Complete the literature review on biomechanics, balance, stability, and sensor studies relevant to powerlifting.
+    - **Movement Analysis**: Deepen understanding of mechanics for each lift.
+- **Weeks 8-9**:
+    - **Research on Sensor Technology**: Investigate different sensors and studies using them for motion analysis.
+    - **Define Movement Criteria**: Identify metrics to assess proper form.
+- **Weeks 10-11**:
+    - **Outline Experimental Design for Next Semester**: Draft the practical setup, including sensor placements and subject requirements.
+    - **Determine Data Collection Methodology**: Plan how to collect and analyze stability data from sensors.
+
+- **Weeks 12-13**:
+    - **Finalize Key Sections of Proposal**: Write introduction, literature review, methodology, and expected outcomes sections.
+    - **Peer/Professor Feedback**: Get feedback on the proposal draft.
+- **Week 14**:
+    - **Submit Final Proposal**: Incorporate feedback, polish the proposal, and submit it.
+
+---
+
+### **10. References**
+
+- Include key references from your initial literature review.
+
+---

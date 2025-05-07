@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sign Up - Powerlifting Movement Analysis</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        background-color: #121212;
+        color: #f39c12; /* Altın sarısı metin */
+        font-family: Arial, sans-serif;
+        padding: 20px;
+      }
+
+      h1 {
+        font-family: "Arial", sans-serif;
+        color: #f39c12;
+      }
+
+      .card {
+        margin-bottom: 20px;
+        border: none;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+        background-color: #2d2d2d;
+      }
+
+      .form-label {
+        color: #f39c12;
+      }
+
+      .form-control {
+        background-color: #444;
+        border-color: #555;
+        color: #f39c12;
+      }
+
+      .form-control:focus {
+        border-color: #f39c12;
+        box-shadow: 0 0 5px rgba(243, 156, 18, 0.5);
+      }
+
+      .btn-primary {
+        background-color: #f39c12;
+        border-color: #f39c12;
+      }
+
+      .btn-primary:hover {
+        background-color: #e67e22;
+        border-color: #e67e22;
+      }
+    </style>
+  </head>
+
+  <body>
+    <a
+      href="javascript:history.back()"
+      class="btn btn-primary:hover"
+      style="position: absolute; top: 20px; left: 20px"
+    >
+      ⬅️ Back
+    </a>
+    <div class="container">
+      <h1 class="text-center mb-5">Powerlifting Movement Analysis - Sign Up</h1>
+
+      <!-- Sign Up Form -->
+      <div class="card mb-4">
+        <div class="card-body">
+          <h5 class="card-title">Sign Up</h5>
+          <form id="signupForm">
+            <div class="mb-3">
+              <label for="signupFirstName" class="form-label">First Name</label>
+              <input
+                type="text"
+                class="form-control"
+                id="signupFirstName"
+                required
+              />
+            </div>
+
+            <div class="mb-3">
+              <label for="signupLastName" class="form-label">Last Name</label>
+              <input
+                type="text"
+                class="form-control"
+                id="signupLastName"
+                required
+              />
+            </div>
+
+            <div class="mb-3">
+              <label for="signupRole" class="form-label">Role</label>
+              <select class="form-select" id="signupRole" required>
+                <option value="">Select Role</option>
+                <option value="athlete">Athlete</option>
+                <option value="trainer">Trainer</option>
+              </select>
+            </div>
+
+            <div class="mb-3">
+              <label for="signupEmail" class="form-label">Email</label>
+              <input
+                type="email"
+                class="form-control"
+                id="signupEmail"
+                required
+              />
+            </div>
+
+            <div class="mb-3">
+              <label for="signupPassword" class="form-label">Password</label>
+              <input
+                type="password"
+                class="form-control"
+                id="signupPassword"
+                required
+              />
+            </div>
+
+            <button type="submit" class="btn btn-primary w-100">Sign Up</button>
+          </form>
+
+          <!-- Alert Message -->
+          <div id="alertMessage" class="alert mt-3 d-none" role="alert"></div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      document
+        .getElementById("signupForm")
+        .addEventListener("submit", async (e) => {
+          e.preventDefault();
+
+          const firstName = document.getElementById("signupFirstName").value;
+          const lastName = document.getElementById("signupLastName").value;
+          const role = document.getElementById("signupRole").value;
+          const email = document.getElementById("signupEmail").value;
+          const password = document.getElementById("signupPassword").value;
+
+          const alertBox = document.getElementById("alertMessage");
+
+          try {
+            const response = await fetch("/signup", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                first_name: firstName,
+                last_name: lastName,
+                role: role,
+                email: email,
+                password: password,
+              }),
+            });
+
+            const data = await response.json();
+
+            if (data.status === "success") {
+              alertBox.textContent =
+                "🎉 Kayıt başarılı! 5 saniye içinde giriş sayfasına yönlendirileceksiniz.";
+              alertBox.className = "alert alert-success mt-3";
+              alertBox.classList.remove("d-none");
+
+              // 5 saniye sonra /login'e yönlendir
+              setTimeout(() => {
+                window.location.href = "/login";
+              }, 5000);
+            } else {
+              alertBox.textContent = "⚠️ Hata: " + data.message;
+              alertBox.className = "alert alert-danger mt-3";
+              alertBox.classList.remove("d-none");
+            }
+          } catch (error) {
+            console.error("Error:", error);
+            alertBox.textContent = "❌ Kayıt sırasında bir hata oluştu.";
+            alertBox.className = "alert alert-danger mt-3";
+            alertBox.classList.remove("d-none");
+          }
+        });
+    </script>
+  </body>
+</html>

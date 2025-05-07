@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Powerlifting Movement Analysis</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        background-color: #121212;
+        color: #f39c12; /* Altın sarısı metin */
+        font-family: Arial, sans-serif;
+        padding: 20px;
+      }
+
+      h1 {
+        font-family: "Arial", sans-serif;
+        color: #f39c12;
+      }
+
+      .card {
+        margin-bottom: 20px;
+        border: none;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+        background-color: #2d2d2d;
+      }
+
+      .metric-card {
+        text-align: center;
+        padding: 20px;
+        border-radius: 10px;
+        transition: transform 0.2s;
+        background-color: #333;
+      }
+
+      .metric-card:hover {
+        transform: translateY(-5px);
+      }
+
+      .button-container {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 30px;
+      }
+
+      .btn {
+        width: 48%;
+      }
+
+      /* Form input styling */
+      input,
+      select {
+        background-color: #444;
+        color: #f39c12; /* Altın sarısı metin */
+        border: 1px solid #555;
+      }
+
+      input:focus,
+      select:focus {
+        border-color: #f39c12;
+        box-shadow: 0 0 5px rgba(243, 156, 18, 0.5); /* Altın sarısı focus */
+      }
+
+      /* Buttons */
+      .btn-primary {
+        background-color: #f39c12;
+        border-color: #f39c12;
+      }
+
+      .btn-primary:hover {
+        background-color: #e67e22;
+        border-color: #e67e22;
+      }
+
+      .btn-danger {
+        background-color: #e74c3c;
+        border-color: #e74c3c;
+      }
+
+      .btn-danger:hover {
+        background-color: #c0392b;
+        border-color: #c0392b;
+      }
+
+      /* Hidden by default */
+      .hidden {
+        display: none;
+      }
+
+      .form-label {
+        color: #f39c12;
+      }
+
+      .form-control {
+        background-color: #444;
+        border-color: #555;
+        color: #f39c12; /* Altın sarısı metin */
+      }
+
+      .form-control:focus {
+        border-color: #f39c12;
+        box-shadow: 0 0 5px rgba(243, 156, 18, 0.5);
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="container">
+      <h1 class="text-center mb-5">Powerlifting Movement Analysis</h1>
+
+      <!-- Authentication Section (Login and Sign Up) -->
+      <div id="authSection" class="card mb-4">
+        <div class="card-body">
+          <h5 class="card-title">Please Log In or Sign Up</h5>
+
+          <!-- Login and Sign Up buttons -->
+          <div class="button-container">
+            <!-- Change login button to a link that navigates to /login -->
+            <a href="/login" class="btn btn-primary">Login</a>
+            <a href="/signup" class="btn btn-primary">Sign Up</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sign Up Form (Initially hidden) -->
+      <div id="signupSection" class="card mb-4 hidden">
+        <div class="card-body">
+          <h5 class="card-title">Sign Up</h5>
+          <form id="signupForm">
+            <div class="mb-3">
+              <label for="signupEmail" class="form-label">Email</label>
+              <input
+                type="email"
+                class="form-control"
+                id="signupEmail"
+                required
+              />
+            </div>
+            <div class="mb-3">
+              <label for="signupPassword" class="form-label">Password</label>
+              <input
+                type="password"
+                class="form-control"
+                id="signupPassword"
+                required
+              />
+            </div>
+            <button type="submit" class="btn btn-primary w-100">Sign Up</button>
+          </form>
+        </div>
+      </div>
+
+      <!-- Movement Selection Section (Visible after login) -->
+      <div id="movementSection" class="card mb-4 hidden">
+        <div class="card-body">
+          <h5 class="card-title">Select Movement</h5>
+          <select id="movementSelect" class="form-select mb-3">
+            <option value="">-- Select Movement --</option>
+            <option value="squat">Squat</option>
+            <option value="benchpress">Bench Press</option>
+            <option value="deadlift">Deadlift</option>
+          </select>
+          <button id="startSessionBtn" class="btn btn-primary w-100" disabled>
+            Start Session
+          </button>
+        </div>
+      </div>
+
+      <!-- End Session Button (Initially hidden) -->
+      <button
+        id="endSessionBtn"
+        class="btn btn-danger w-100 hidden"
+        style="display: none"
+      >
+        End Session
+      </button>
+
+      <!-- Analysis Results -->
+      <div id="resultsSection" style="display: none">
+        <h3 class="mb-4">Analysis Results</h3>
+
+        <!-- Metrics -->
+        <div class="row mb-4">
+          <div class="col-md-3">
+            <div class="card metric-card bg-light">
+              <h6>Movement Classification</h6>
+              <div id="classificationScore" class="h3 mb-0">-</div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="card metric-card bg-light">
+              <h6>Stability Analysis</h6>
+              <div id="stabilityScore" class="h3 mb-0">-</div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="card metric-card bg-light">
+              <h6>Balance Score</h6>
+              <div id="balanceScore" class="h3 mb-0">-</div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="card metric-card bg-light">
+              <h6>Anomaly Status</h6>
+              <div id="anomalyStatus" class="h3 mb-0">-</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Suggestions -->
+        <div class="card mb-4">
+          <div class="card-body">
+            <h5 class="card-title">Movement Feedback</h5>
+            <div id="suggestions"></div>
+          </div>
+        </div>
+
+        <!-- Anomaly Plot -->
+        <div class="card">
+          <div class="card-body">
+            <h5 class="card-title">Anomaly Detection Plot</h5>
+            <img
+              id="anomalyPlot"
+              src=""
+              alt="Anomaly Detection Plot"
+              class="anomaly-plot"
+              style="display: none"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+      // Authentication Section
+      document.getElementById("loginBtn").addEventListener("click", () => {
+        window.location.href = "/login"; // Redirect to login page
+      });
+
+      document.getElementById("signupBtn").addEventListener("click", () => {
+        document.getElementById("authSection").style.display = "none";
+        document.getElementById("signupSection").style.display = "block";
+      });
+
+      document
+        .getElementById("signupForm")
+        .addEventListener("submit", async (e) => {
+          e.preventDefault();
+          const email = document.getElementById("signupEmail").value;
+          const password = document.getElementById("signupPassword").value;
+
+          try {
+            const response = await fetch("/signup", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ email, password }),
+            });
+
+            const data = await response.json();
+            if (data.status === "success") {
+              alert("Sign Up successful!");
+              window.location.href = "/login"; // Redirect to login
+            } else {
+              alert("Error during sign up: " + data.message);
+            }
+          } catch (error) {
+            console.error("Error:", error);
+            alert("An error occurred during sign up.");
+          }
+        });
+    </script>
+  </body>
+</html>

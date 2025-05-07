@@ -1,0 +1,74 @@
+# Python genel
+__pycache__/
+*.py[cod]
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+*.pyo
+*.pyd
+*.pdb
+
+# Sanal ortamlar
+venv/
+venv310/
+.env
+.env.*
+
+# IDE ve editor dosyaları
+.vscode/
+.idea/
+*.sublime-workspace
+*.sublime-project
+
+# MacOS özel
+.DS_Store
+
+# Jupyter ve output
+.ipynb_checkpoints/
+*.ipynb
+
+# Log dosyaları
+*.log
+
+# Database, cache veya tmp
+*.sqlite3
+*.db
+tmp/
+*.bak
+
+# Matplotlib ve görseller
+*.png
+*.pdf
+*.svg
+*.jpg
+*.jpeg
+
+# Flask / Django cache & session
+instance/
+.webassets-cache
+
+# Çıktılar / sonuçlar
+static/anomaly_plot.png
+
+# Node (olursa)
+node_modules/
+npm-debug.log*
+
+# Pytest ve coverage (opsiyonel)
+htmlcov/
+.tox/
+.coverage
+.cache/
+.pytest_cache/
+
+# Virtualenv (pipenv & poetry)
+Pipfile.lock
+poetry.lock
+
+# OS & Editor back up dosyaları
+*~
+*.swp
+*.tmp
