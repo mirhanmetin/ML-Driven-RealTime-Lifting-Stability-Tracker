@@ -74,13 +74,12 @@
       document
         .getElementById("logoutBtn")
         .addEventListener("click", async () => {
-          // Eğer session bazlı logout yapıyorsan burada backend'e istek atabilirsin.
           try {
             const response = await fetch("/logout", { method: "POST" });
             const data = await response.json();
             if (data.status === "success") {
               alert("🚪 Logged out successfully!");
-              window.location.href = "/login";
+              window.location.href = "/";
             } else {
               alert("❌ Logout failed: " + data.message);
             }

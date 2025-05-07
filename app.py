@@ -375,6 +375,32 @@ def session_details_page(session_id):
         logger.error(f"❌ Error loading session details: {str(e)}", exc_info=True)
         return "An error occurred loading session details page.", 500
 
+@app.route('/profile', methods=['GET'])
+@login_required
+def profile_page():
+    try:
+        user_id = flask_session.get('user_id')
+        user = User.query.filter_by(id=user_id).first()
+        if not user:
+            return "User not found", 404
+
+        sessions = Sessions.query.filter_by(athlete=user_id).all()
+
+        return render_template(
+            'profile.html',
+            user=user,
+            sessions=sessions
+        )
+    except Exception as e:
+        logger.error(f"❌ Error loading profile page: {str(e)}", exc_info=True)
+        return "An error occurred while loading the profile page.", 500
+
+@app.route('/logout', methods=['POST'])
+def logout():
+    flask_session.clear()
+    logger.info("✅ User logged out successfully (POST)")
+    return jsonify({'status': 'success', 'message': 'Logged out successfully'}), 200
+
 
 @socketio.on('connect')
 def handle_connect():
