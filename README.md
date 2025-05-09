@@ -1,22 +1,27 @@
-\*\* Requirements: \*\*
+Project Requirements & Setup Guide
 
-Phyton and/or Phyton3 -> Phyton version should be one of tensorflow satisfied versions.
+Python Environment Requirements
 
---- Should run this commands firstly: ---
+    Python 3.x → Specifically, a version compatible with TensorFlow (we recommend Python 3.10)
 
-    $ brew install python@3.10
+Initial Setup (macOS with Homebrew)
 
---- After that, create a virtual environment on this version: ---
+    Install Python 3.10:
 
-    $ source venv310/bin/activate
-        -> Should seem like that:
+        $ brew install python@3.10
+
+    Create a virtual environment:
+
+        $ python3.10 -m venv venv310
+        $ source venv310/bin/activate
+
+    You should now see your shell like:
+
         $ (venv310) yourmachine%
 
---- Upgrade your pip to the newest version: ---
+Python Library Requirements
 
-    $ pip install --upgrade pip
-
---- Pre-Requirements: ---
+    We use several key libraries for scientific computing, data manipulation, visualization, and machine learning:
 
     - Numpy
         -> One of the most fundamental scientific calculation library
@@ -49,44 +54,42 @@ Phyton and/or Phyton3 -> Phyton version should be one of tensorflow satisfied ve
             -- Creating LSTM autoencoder model
             -- Training LSTM autoencoder model
 
---- Instal prerequirements: ---
+Install Required Libraries
 
     $ pip install numpy pandas matplotlib scikit-learn tensorflow
 
---- Run the project ---
+Run the Project
 
     $ phyton app.py
 
---- Structure
+Project Workflow
 
-    1. Load data and clean
+    1.  Load and Clean Data
+        Read CSV files
+        Drop or handle missing values
     2. Normalization
         It represents compressing data into a range between 0 and 1.
         MinMaxScaler applies to each column separately-> (X[scaled] = X - X[min]) / (X[max] - X[min])
-        Example for left_foot_pressure:
-            Values: 20
-                    50
-                    80
-            Min: 20 Max: 80
-            20 -> (20−20)/(80−20)=0
-            50 -> (50−20)/(80−20)=30/60=0.5
-            80 -> (80−20)/(80−20)=1
+        Example:
+            Raw: 20, 50, 80 → Scaled: 0, 0.5, 1
+    3. Train Models
+        Train LSTM autoencoder on prepared sequences
+        Combine with IsolationForest and One-Class SVM for hybrid anomaly detection
+    4. Provide Feedback
+        Display alerts, recommendations, and visualizations
 
---- Databases ---
+Database Setup
 
-    Connection String:
+    Connection String (PostgreSQL on Railway):
         terminal -> PGPASSWORD=EzoBNoVJIZgMoVscYsURFdcNvwRAKjac psql -h interchange.proxy.rlwy.net -U postgres -p 57128 -d railway
 
-    - Tables -
+    Tables:
 
-    Types:
+    Enum Types:
         1. lift_types: ["squat", "bench_press", "deadlift"]
             query: CREATE TYPE lift_type AS ENUM ('squat', 'bench_press', 'deadlift');
 
-
-    1. Users
-
-        a. SQL Query:
+    1. users
 
         CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
@@ -99,3 +102,75 @@ Phyton and/or Phyton3 -> Phyton version should be one of tensorflow satisfied ve
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
+
+    2. feedback
+
+        CREATE TABLE feedback (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            session UUID NOT NULL REFERENCES sessions(id),
+            metrics_id UUID NOT NULL REFERENCES performance_metrics(id),
+            feedback_text TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+
+    3. performance_metrics
+
+        CREATE TABLE performance_metrics (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            session UUID NOT NULL REFERENCES sessions(id),
+            balance_score FLOAT NOT NULL,
+            stability_score FLOAT NOT NULL,
+            injury_risk FLOAT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+
+    4. sensor_data
+
+        CREATE TABLE sensor_data (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            athlete UUID REFERENCES users(id),
+            session UUID REFERENCES sessions(id),
+            raw_data JSONB NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+
+    5. sessions
+
+        CREATE TABLE sessions (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            trainer UUID REFERENCES users(id),
+            athlete UUID REFERENCES users(id),
+            lift_type lift_type NOT NULL,
+            sensor_data_id UUID REFERENCES sensor_data(id),
+            performance_metric_id UUID REFERENCES performance_metrics(id),
+            feedback_id UUID REFERENCES feedback(id),
+            started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            ended_at TIMESTAMP,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            status VARCHAR(50) CHECK (status IN ('active', 'ended')) NOT NULL
+        );
+
+Structure
+
+    /app.py → Initiator for web app
+    /models → DB models
+    /services → business logic
+    /templates → html templates
+    /models/checkpoints/lstm_autoencoder.h5 → Saved LSTM model weight
+
+APIs:
+
+    GET /signup -> gets sign-up page
+    POST /signup → user registration
+    GET /login -> gets login page
+    POST /login → login user
+    GET /dashboard -> gets welcome page
+    POST /sessions → creates new session
+    GET /sessions/<session_id> -> gets session details
+    GET /sessions/<session_id>/sensor_data -> gets sensor data for session
+    POST /sessions/<id>/end → end session and start analyze
+    GET /profile → user profile and session history

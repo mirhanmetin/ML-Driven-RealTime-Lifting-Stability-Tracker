@@ -5,7 +5,7 @@ from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import LSTM, Dense, RepeatVector, TimeDistributed
 
 # Yeni dosyayı oku
-df = pd.read_csv('extended_training_data.csv')
+df = pd.read_csv('Final_Structured_Data.csv')
 features = ['left_foot_pressure', 'right_foot_pressure', 'core_stability']
 data_clean = df[features].dropna().reset_index(drop=True)
 
