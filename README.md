@@ -1,3 +1,10 @@
+ML-Driven Real-Time Lifting Stability Tracker
+
+A machine learning-powered real-time monitoring system designed to analyze balance and stability during powerlifting exercises (squat, bench press, deadlift).
+It uses LSTM autoencoders and hybrid anomaly detection models (Isolation Forest, One-Class SVM) to detect posture instabilities and atypical lifting patterns.
+The system provides automated feedback to athletes and trainers based on real-time sensor data, aiming to reduce injury risk and improve lifting technique.
+
+
 Project Requirements & Setup Guide
 
 Python Environment Requirements
