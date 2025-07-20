@@ -5,6 +5,7 @@ It uses LSTM autoencoders and hybrid anomaly detection models (Isolation Forest,
 The system provides automated feedback to athletes and trainers based on real-time sensor data, aiming to reduce injury risk and improve lifting technique.
 
 
+
 Project Requirements & Setup Guide
 
 Python Environment Requirements
